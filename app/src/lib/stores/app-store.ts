@@ -18,6 +18,7 @@ import {
   IRevertProgress,
   IFetchProgress,
   CompareType,
+  CompareAction,
   ICompareState,
 } from '../app-state'
 import { Account } from '../../models/account'
@@ -681,38 +682,32 @@ export class AppStore extends TypedBaseStore<IAppState> {
   /** This shouldn't be called directly. See `Dispatcher`. */
   public async _LoadCompareState(
     repository: Repository,
-    branch: Branch | null,
-    compareType: CompareType
+    compareAction: CompareAction
   ): Promise<void> {
     const gitStore = this.getGitStore(repository)
 
-    if (compareType === CompareType.None) {
+    if (compareAction.type === CompareType.None) {
       await gitStore.loadHistory()
 
       const state = this.getRepositoryState(repository).historyState
       const commits = state.history
 
       this.updateCompareState(repository, state => ({
-        compareType,
+        compareState: compareAction.type,
         commitSHAs: commits,
-        branch,
+        branch: null,
         ahead: 0,
         behind: 0,
       }))
       return
     }
 
-    if (branch == null) {
-      log.debug(`oops, we can't compare if the branch isn't selected`)
-      return
-    }
-
-    const compare = await gitStore.getCompareStateDetails(branch, compareType)
+    const compare = await gitStore.getCompareStateDetails(compareAction)
 
     if (compare != null) {
       this.updateCompareState(repository, state => ({
-        compareType,
-        branch,
+        compareType: compareAction.type,
+        branch: compareAction.branch,
         commitSHAs: compare.commits.map(commit => commit.sha),
         ahead: compare.ahead,
         behind: compare.behind,
@@ -728,10 +723,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
     branch: Branch
   ): Promise<ICompareResult | null> {
     const gitStore = this.getGitStore(repository)
-    const compare = await gitStore.getCompareStateDetails(
+
+    const compareAction: CompareAction = {
+      type: CompareType.Behind,
       branch,
-      CompareType.Behind
-    )
+    }
+    const compare = await gitStore.getCompareStateDetails(compareAction)
 
     return compare
   }

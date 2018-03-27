@@ -1,7 +1,11 @@
 import * as React from 'react'
 import { IGitHubUser } from '../../lib/databases'
 import { Commit } from '../../models/commit'
-import { CompareType, IRepositoryState } from '../../lib/app-state'
+import {
+  CompareType,
+  IRepositoryState,
+  CompareAction,
+} from '../../lib/app-state'
 import { CommitList } from './commit-list'
 import { Repository } from '../../models/repository'
 import { Branch } from '../../models/branch'
@@ -67,11 +71,9 @@ export class CompareSidebar extends React.Component<
   }
 
   public componentWillMount() {
-    this.props.dispatcher.loadCompareState(
-      this.props.repository,
-      this.state.selectedBranch,
-      CompareType.None
-    )
+    this.props.dispatcher.loadCompareState(this.props.repository, {
+      type: CompareType.None,
+    })
   }
 
   public componentWillUnmount() {
@@ -226,16 +228,24 @@ export class CompareSidebar extends React.Component<
   }
 
   private onTabClicked = (index: number) => {
+    if (this.state.selectedBranch == null) {
+      log.warn(
+        'the tab bar is visible without a selected branch, should not be in this state'
+      )
+      return
+    }
+
     const compareType =
       (index as SelectedTab) === SelectedTab.Behind
         ? CompareType.Behind
         : CompareType.Ahead
 
-    this.props.dispatcher.loadCompareState(
-      this.props.repository,
-      this.state.selectedBranch,
-      compareType
-    )
+    const action: CompareAction = {
+      type: compareType,
+      branch: this.state.selectedBranch,
+    }
+
+    this.props.dispatcher.loadCompareState(this.props.repository, action)
 
     this.setState({ selectedTab: index })
   }
@@ -310,11 +320,13 @@ export class CompareSidebar extends React.Component<
             branch =>
               branch.name.toLowerCase() === this.state.filterText.toLowerCase()
           ) || null
-        this.props.dispatcher.loadCompareState(
-          this.props.repository,
-          branch,
-          CompareType.None
-        )
+
+        const action: CompareAction = {
+          type: CompareType.None,
+          branch: branch,
+        }
+
+        this.props.dispatcher.loadCompareState(this.props.repository, action)
         this.setState({ selectedBranch: branch })
         this.textbox!.blur()
       }
@@ -324,11 +336,9 @@ export class CompareSidebar extends React.Component<
   }
 
   private handleEscape() {
-    this.props.dispatcher.loadCompareState(
-      this.props.repository,
-      null,
-      CompareType.None
-    )
+    this.props.dispatcher.loadCompareState(this.props.repository, {
+      type: CompareType.None,
+    })
     this.setState({ selectedBranch: null, filterText: '' })
     this.textbox!.blur()
   }
@@ -383,11 +393,12 @@ export class CompareSidebar extends React.Component<
       }
     }
 
-    this.props.dispatcher.loadCompareState(
-      this.props.repository,
-      selectedBranch,
-      compareType
-    )
+    const action: CompareAction = {
+      type: compareType,
+      branch: branch,
+    }
+
+    this.props.dispatcher.loadCompareState(this.props.repository, action)
 
     this.setState({
       selectedBranch,

@@ -57,6 +57,17 @@ export enum CompareType {
   Behind = 'behind',
 }
 
+export type CompareToBranch = {
+  type: CompareType.Ahead | CompareType.Behind
+  branch: Branch
+}
+
+export type CompareAction =
+  | {
+      type: CompareType.None
+    }
+  | CompareToBranch
+
 export type PossibleSelections =
   | {
       type: SelectionType.Repository
