@@ -1,6 +1,6 @@
 import * as React from 'react'
 
-import { getAheadBehind } from '../../lib/git'
+import { getAheadBehind, asSymmetricDifferenceRange } from '../../lib/git'
 import { Dispatcher } from '../../lib/dispatcher'
 
 import { Branch } from '../../models/branch'
@@ -184,7 +184,7 @@ export class Merge extends React.Component<IMergeProps, IMergeState> {
   }
 
   private async updateCommitCount(branch: Branch) {
-    const range = `...${branch.name}`
+    const range = asSymmetricDifferenceRange('', branch.name)
     const aheadBehind = await getAheadBehind(this.props.repository, range)
     const commitCount = aheadBehind ? aheadBehind.behind : 0
 
